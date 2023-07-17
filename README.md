@@ -167,10 +167,15 @@ The `From`/`Into` conversion is implemented in all cases when conversion is poss
 
 #### Blanket implementations
 
-Each field triggers the generation of a `Has{Field}` trait with a getter method `fn {field}(&self) -> &{field_type}` with an implementation for each type that has field.
+Each field triggers the generation of a `Has{Field}` trait with a getter method `fn {field}(&self) -> &{field_type}`, and a setter method `fn set_{field}(&mut self, value: &{field_type})`, with an implementation for each struct that has field.
 
 Since the 3 structs share the much of the same data, they can implement some of the same functionality. For instance, if we'd like to find out what's the order total (remember `UNIT_PRICE` and `SHIPPING_PRICE` in the beginning of the example?), we can create a blanket implementation using the `HasAmount` and `HasShippingRequired` traits, which are implemented for all types that have the `amount` and `shipping_required` fields. It allows us to use the `amount()` and `shipping_required()` getter methods like so:
 ```rust
+// These work out of the box:
+request.set_amount(10);
+order.set_amount(10);
+response.set_amount(10);
+
 trait GetTotal: HasAmount + HasShippingRequired {
     fn total(&self) -> u64 {
         self.amount() * UNIT_PRICE

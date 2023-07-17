@@ -266,11 +266,13 @@ pub fn boilermates(attr: TokenStream, item: TokenStream) -> TokenStream {
         let trait_name = field.trait_name();
         let neg_trait_name = field.neg_trait_name();
         let field_name = field.name();
+        let setter_fn = Ident::new(&format!("set_{}", field_name), Span::call_site());
         let field_ty = &field.field.ty;
         traits = quote! {
             #traits
             trait #trait_name {
                 fn #field_name(&self) -> &#field_ty;
+                fn #setter_fn(&mut self, value: #field_ty);
             }
 
             trait #neg_trait_name {}
@@ -287,6 +289,10 @@ pub fn boilermates(attr: TokenStream, item: TokenStream) -> TokenStream {
                     impl #trait_name for #struct_ident {
                         fn #field_name(&self) -> &#field_ty {
                             &self.#field_name
+                        }
+
+                        fn #setter_fn(&mut self, value: #field_ty) {
+                            self.#field_name = value;
                         }
                     }
                 };
