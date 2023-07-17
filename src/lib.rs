@@ -31,6 +31,10 @@ impl FieldConfig {
     fn trait_name(&self) -> Ident {
         Ident::new(&format!("Has{}", snake_to_pascal(&self.name().to_string())), Span::call_site())
     }
+
+    fn neg_trait_name(&self) -> Ident {
+        Ident::new(&format!("HasNo{}", snake_to_pascal(&self.name().to_string())), Span::call_site())
+    }
 }
 
 impl PartialEq for FieldConfig {
@@ -229,7 +233,6 @@ pub fn boilermates(attr: TokenStream, item: TokenStream) -> TokenStream {
                                 "`#[boilermates(only_in(...))]` must have at least one argument"
                             );
                         }
-                        eprintln!("Add to: {:?}", add_to);
                         nested.iter().for_each(|n| {
                             if !add_to.iter().any(|s| s == n.as_str()) {
                                 panic!(
@@ -261,6 +264,7 @@ pub fn boilermates(attr: TokenStream, item: TokenStream) -> TokenStream {
 
         let field = FieldConfig::new(field.clone(), default);
         let trait_name = field.trait_name();
+        let neg_trait_name = field.neg_trait_name();
         let field_name = field.name();
         let field_ty = &field.field.ty;
         traits = quote! {
@@ -268,24 +272,31 @@ pub fn boilermates(attr: TokenStream, item: TokenStream) -> TokenStream {
             trait #trait_name {
                 fn #field_name(&self) -> &#field_ty;
             }
+
+            trait #neg_trait_name {}
         };
 
-        add_to.iter().for_each(|strukt| {
-            structs
-                .get_mut(strukt)
-                .unwrap_or_else(|| panic!("Struct `{}` not declared", strukt))
-                .fields
-                .push(field.clone());
+        structs.iter_mut().for_each(|(struct_name, strukt)| {
+            let struct_ident = Ident::new(struct_name, Span::call_site());
 
-            let struct_name = Ident::new(strukt, Span::call_site());
-            traits = quote! {
-                #traits
-                impl #trait_name for #struct_name {
-                    fn #field_name(&self) -> &#field_ty {
-                        &self.#field_name
+            if add_to.contains(struct_name) {
+                strukt.fields.push(field.clone());
+                
+                traits = quote! {
+                    #traits
+                    impl #trait_name for #struct_ident {
+                        fn #field_name(&self) -> &#field_ty {
+                            &self.#field_name
+                        }
                     }
-                }
-            };
+                };
+            } else {
+                traits = quote! {
+                    #traits
+                    impl #neg_trait_name for #struct_ident {}
+                };
+            }
+
         });
     });
 

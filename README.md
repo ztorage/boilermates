@@ -188,3 +188,5 @@ let total = request.total()
 let total = order.total()
 let total = response.total()
 ```
+
+In a similar fashion, a 'HasNo{Field}' trait  is generated for each struct that does not contain a specific field.
